@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+id = "V3R"
+version = "1.0.0"
+name = "V3R"
+tagline = "Realtime 3D reconstruction from video and live streams"
+maintainer = "V3R"
+type = "add-on"
+
+tags = ["3D View"]
+
+blender_version_min = "5.2.0"
+
+license = [
+    "SPDX:GPL-3.0-or-later",
+]
