@@ -1,9 +1,9 @@
 schema_version = "1.0.0"
 
 id = "V3R"
-version = "1.0.0"
+version = "2.0.0"
 name = "V3R"
-tagline = "Realtime 3D reconstruction from video and live streams"
+tagline = "Realtime Solv3R point-cloud reconstruction from video and live streams"
 maintainer = "V3R"
 type = "add-on"
 

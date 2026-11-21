@@ -4,6 +4,8 @@
 
 Each card below is a **complete prompt**: project facts, the full §8 code rules (verbatim), exact interfaces and data contracts, debug-artifact duties, tests, and a done-when checklist. Copy one entire fenced block into the coding agent — nothing else is needed.
 
+> **Rev 3.0 (2026-11-21) — Solv3R pivot.** The inference engine is now [Solv3R](https://github.com/ubc-vision/solv3r) (PyTorch). The following are **removed** everywhere in this file and the design doc: the ban on `import torch` / `from torch` (R12), the AMD-only / DirectML / NCNN / no-CUDA lock (C1/C2, A1–A5), and the GPS/telemetry metric-scale requirement (including task T5 and decision D-000). PyTorch is allowed **inside the worker process and its own virtual environment**; Blender-side add-on code still must not import torch, because Blender's Python is not the worker environment. The backend (`cuda` / `rocm` / `cpu`) is a startup setting; an unavailable backend is a verbose error, never a silent fallback. All other §8 rules, non-blocking Blender, debug artifacts and honest-error rules remain binding.
+
 ## How to use
 
 1. Work strictly in card order per day (plan §9): Day 1 = T0, then T1 ∥ T2 · Day 2 = T3 ∥ T4 ∥ T5 · Day 3 = T6 ∥ T7, then T8 · Day 4 = T9 ∥ T10 · Day 5 = T11, T12 starts · Day 6 = T12 finish, T13 stretch.
@@ -96,11 +98,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -370,11 +373,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -547,11 +551,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -722,11 +727,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -890,11 +896,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -1072,11 +1079,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -1255,11 +1263,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -1441,11 +1450,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -1619,11 +1629,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -1811,11 +1822,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -2008,11 +2020,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -2171,11 +2184,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -2336,11 +2350,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.
@@ -2498,11 +2513,12 @@ HONESTY (the anti-sugarcoating rules)
       NotImplementedError(TODO_id) — declared, tested at the interface
       level, never imitated.
 
-TECHNOLOGY LOCK
- R12. Inference = ONNX Runtime only. NO import torch / from torch
-      anywhere (CI grep fails the build). NO CUDA-specific calls. GPU
-      stages run via the compute backend abstraction
-      (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm)
+      and ONNX Runtime are both allowed there. Blender-side add-on code
+      must not import torch or onnxruntime. The backend (cuda | rocm |
+      cpu) is a startup setting; an unavailable backend is a verbose
+      error, never a silent fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be
       reported in the task notes — it is an architecture violation,
       not a tuning problem.

@@ -4,6 +4,69 @@ Newest entry first. One entry per task card or meaningful work chunk.
 
 ---
 
+## 2026-11-21 — Solv3R pivot: CLI, worker and Blender add-on
+
+**Status:** done. Video and stream modes verified end-to-end; CPU backend default on this
+machine because the ROCm 7.2 wheel has no gfx1010 binaries (D-012).
+
+**Files created / changed**
+
+- `worker/` — `config.py`, `source.py`, `points.py`, `outputs.py`, `session.py`, `app.py`:
+  JSON config validation, video/stream ingest, depth→points, artifacts, Solv3R streaming.
+- `v3r_cli.py` — command-line entry; same worker package as the Blender plugin.
+- `V3R/services/point_cloud.py` — native Point Cloud object with per-point `radius` and `Col`;
+  EEVEE/Cycles render it without per-point meshes (D-014).
+- `V3R/services/reconstruction_service.py` — spawns the worker, reads JSON lines in a thread,
+  applies points on a `bpy.app.timers` tick, stops with timeout.
+- `V3R/properties/v3r_settings.py` — source, output, worker paths, device, preset, resolution,
+  sample fps, max frames, point stride/budget/radius, depth, stream timeout, full Solv3R knobs.
+- `V3R/operators/reconstruction.py` — start/stop, open output, clear cloud.
+- `V3R/panels/v3r_panel.py` — source, run controls, status, advanced sub-panel.
+- `V3R/__init__.py`, `V3R/blender_manifest.toml` — v2.0.0.
+- `tests/test_worker_config.py`, `tests/test_worker_points.py`,
+  `tests/blender_smoke.py`, `tests/blender_stream_smoke.py`, `tests/mjpeg_server.py`.
+- `README.md`, `docs/DECISIONS.md` (D-011…D-014), `AGENTS.md`, `pyproject.toml`, `.gitignore`.
+
+**Verification (from repo root)**
+
+| Command | Result |
+|---|---|
+| `.venv/bin/ruff format core worker V3R tests v3r_cli.py` | clean |
+| `.venv/bin/ruff check core worker V3R tests v3r_cli.py` | All checks passed |
+| `.venv/bin/mypy core worker tests v3r_cli.py` | Success: no issues |
+| `.venv/bin/pytest -q` | 51 passed |
+| `v3r_cli.py --source samples/drone1.mp4 --sample-fps 2 --max-frames 10` | 10 frames, 17 243 points, report.md written |
+| `v3r_cli.py --source http://127.0.0.1:8768 --source-kind stream --max-frames 6` | 6 frames, 10 248 points, no errors |
+| `blender -b --factory-startup --python tests/blender_smoke.py` | 6 frames, 10 295 points, no error |
+| `blender -b --factory-startup --python tests/blender_stream_smoke.py` | 6 frames, 10 251 points, no error |
+| `blender -b --factory-startup --python tests/blender_render_smoke.py` | EEVEE render of 13 718 points |
+| `blender -b --factory-startup --python-expr "...addon_enable(module='V3R')"` | ENABLED True, panel registered |
+| `v3r_cli.py --no-depth --max-frames 6` | 6 frames, 10 295 points, no depth files |
+
+**Blockers / notes**
+
+- gfx1010 is not supported by ROCm 7.2; `cuda` is a verbose error here. CPU at S4/252 is
+  ~0.3–0.7 s per answered frame (D-012).
+- vdo.ninja is WebRTC; use OBS Browser Source → RTMP/RTSP/HTTP, then give V3R that URL
+  (D-013).
+- Model weights live at `models/solv3r.safetensors` (SHA256
+  `3cf9f215e6fee4639547cea482081be8103f7be5fdea57f58c795f552a624cb4`).
+
+**Next**
+
+- Demonstrate the Blender viewport update on the RX 5700 XT with a longer clip.
+- If a CUDA/ROCm-supported GPU is available, measure `--device cuda` and record Gate A in
+  `docs/DECISIONS.md`.
+- Optional: per-point image colour is already wired; tune `point_radius` for the scene scale.
+
+**Packaging**
+
+- `V3R_addon.zip` — installable add-on folder (`V3R/`).
+- `V3R_bundle.zip` — add-on + worker + CLI + docs + sample clips (no model, no venv).
+- The model and worker venv are not in the archives; see `README.md` → Packaging.
+
+---
+
 ## 2026-11-17 — T0 · Skeleton, contracts, debug IO
 
 **Status:** done, with one blocked input (telemetry format — D-000).

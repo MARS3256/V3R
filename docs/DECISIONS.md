@@ -184,6 +184,94 @@ the implementation is one file down in `core/_run_folder.py`.
 
 ---
 
+## D-010 Solv3R pivot: PyTorch allowed, telemetry requirement removed
+
+**Status:** active from 2026-11-21. Supersedes C1, C2, A1–A5, R12, FR-2, FR-5, task T5 and D-000.
+
+**Decision:** the reconstruction engine is [Solv3R](https://github.com/ubc-vision/solv3r)
+(Apache-2.0 code; NVIDIA research weights). It runs in the worker process under PyTorch. The
+worker venv is separate from Blender's Python. The backend is a startup setting
+(`cuda` / `rocm` / `cpu`); an unavailable backend is a verbose error, not a fallback.
+
+**Removed:** the ban on `import torch` / `from torch` in the worker; the AMD-only / DirectML /
+NCNN / no-CUDA lock; the GPS/IMU telemetry requirement and the ground-plane metric-scale fit;
+code rule R12 (ONNX-only). Solv3R predicts metric-scale depth and camera poses from images, so
+no telemetry file is required.
+
+**Still binding:** non-blocking Blender, the separate worker process, JSON-line status, debug
+artifacts in `samples/outputs`, verbose errors instead of fallbacks, and the §8 code-quality
+rules other than R12.
+
+**Model weights:** downloaded once into the working folder at `models/solv3r.safetensors` (not
+the Hugging Face cache). The worker loads that exact file and records its SHA256.
+
+**Consequence:** D-000 (telemetry format) and T5 (scale fit) are closed as superseded. T2 no
+longer needs a telemetry CSV. The sample video remains the input for the CLI and plugin.
+
+---
+
+## D-011 Solv3R worker implementation and defaults
+
+**Status:** active from 2026-11-21.
+
+**Decision:**
+
+- The worker is `worker/app.py`, run as a separate process with its own Python environment
+  (`.venv-worker`). It reads a JSON config written by the CLI or the Blender add-on and emits
+  one JSON object per line on stdout.
+- Default preset is **S4** (4 anchors, 4 recent, 16 memory, 4 calls) at **252 px** long side
+  and **2 samples/s**. This is the responsive setting: on the CPU backend it answers roughly
+  every 0.3–0.7 s, so the point cloud grows while the video plays.
+- `L4` / `L8` and `504 px` remain available for offline quality; they are 5–15× slower.
+- Outputs go to `samples/outputs/` by default: `depth/`, `depth_png/`, `points/`,
+  `cumulative.npz`, `solv3r_points.ply`, `latest.json`, `meta.json`, `report.md`.
+- The CLI (`v3r_cli.py`) and the Blender worker share the same `worker` package and therefore
+  produce identical artifact trees.
+
+**Reason:** the demo updates the point cloud as frames are solved; a 10 s/frame preset would
+not demonstrate that. The defaults favour visible progress, and every knob is exposed.
+
+## D-012 gfx1010 (RX 5700 XT) uses the configured CPU backend
+
+**Status:** active from 2026-11-21.
+
+**Decision:** the worker's default device is `cpu`. `cuda` is selectable and is validated at
+startup. On this machine the ROCm 7.2 PyTorch wheel has no gfx1010 binaries: `torch.cuda`
+reports the device, but the first real kernel faults with a memory aperture error. The worker
+therefore refuses `cuda` with a verbose `BackendError` and does not silently switch.
+
+**Reason:** the previous plan's AMD-only constraint is gone (D-010), but the hardware still
+cannot run the ROCm 7.2 build. An explicit CPU run is honest; a silent fallback is not. On a
+CUDA/ROCm-supported GPU, `--device cuda` is the fast path.
+
+## D-013 vdo.ninja and other WebRTC pages need an OBS bridge
+
+**Status:** active from 2026-11-21.
+
+**Decision:** V3R accepts `rtsp://`, `rtmp://`, `udp://`, `srt://`, `http://` and `https://`
+URLs that OpenCV/FFmpeg can decode. A `https://vdo.ninja/...` page is WebRTC, not a video
+stream, and is rejected with a verbose error. The supported route is OBS Browser Source →
+OBS RTMP/RTSP/HTTP output → V3R URL.
+
+**Reason:** OpenCV cannot decode WebRTC from a web page. The OBS bridge is the standard,
+lossless-enough way to turn vdo.ninja into a stream URL. No fake "direct vdo.ninja" support is
+implied.
+
+## D-014 Native Point Cloud object for rendering
+
+**Status:** active from 2026-11-21.
+
+**Decision:** the Blender point cloud is a native `PointCloud` object with per-point `radius`
+and a FLOAT_COLOR attribute `Col`. Its material is an Attribute node (`Col`, Geometry) into
+an Emission shader. EEVEE and Cycles render it natively; EEVEE draws low-poly sphere
+instances, so there is no per-point mesh duplication.
+
+**Reason:** millions of instanced meshes would exhaust memory and slow the viewport. Native
+point clouds are the memory-efficient path and support per-point colour in both engines. The
+earlier mesh-of-quads prototype was discarded after this was verified.
+
+---
+
 ## Gate definitions (plan §9; copied here on Day 1)
 
 - **Gate A (Day 1):** depth ONNX runs on the RX 5700 XT at ≤ 200 ms/frame, ≤ 2 GB VRAM, with

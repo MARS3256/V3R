@@ -1,8 +1,8 @@
-import bpy
 import os
+
 from bpy.props import StringProperty
-from bpy_extras.io_utils import ImportHelper
 from bpy.types import Operator
+from bpy_extras.io_utils import ImportHelper
 
 
 class V3R_OT_SelectVideo(Operator, ImportHelper):
@@ -11,12 +11,12 @@ class V3R_OT_SelectVideo(Operator, ImportHelper):
     bl_idname = "v3r.select_video"
     bl_label = "Select Video"
     bl_description = "Open Blender's file browser to choose a video file for reconstruction"
-    bl_options = {'REGISTER'}
+    bl_options = {"REGISTER"}
 
     filename_ext = ""
     filter_glob: StringProperty(
         default="*.mp4;*.avi;*.mkv;*.mov;*.webm;*.m4v;*.mpg;*.mpeg",
-        options={'HIDDEN'},
+        options={"HIDDEN"},
         name="File Filter",
         description="Supported video file formats",
     )
@@ -24,7 +24,7 @@ class V3R_OT_SelectVideo(Operator, ImportHelper):
     filepath: StringProperty(
         name="File Path",
         description="Path to the selected video file",
-        subtype='FILE_PATH',
+        subtype="FILE_PATH",
         default="",
     )
 
@@ -32,5 +32,5 @@ class V3R_OT_SelectVideo(Operator, ImportHelper):
         settings = context.scene.v3r_settings
         settings.video_path = self.filepath
         name = os.path.basename(self.filepath) if self.filepath else ""
-        self.report({'INFO'}, f"Video selected: {name}")
-        return {'FINISHED'}
+        self.report({"INFO"}, f"Video selected: {name}")
+        return {"FINISHED"}

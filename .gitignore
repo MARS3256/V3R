@@ -1,4 +1,15 @@
 *.zip
+*.whl
 venv/
+.venv/
+.venv-worker/
+.pip-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 __pycache__/
 *.pyc
+.kilo/
+models/*.safetensors
+samples/outputs/
+third_party/solv3r/

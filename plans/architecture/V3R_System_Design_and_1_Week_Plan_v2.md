@@ -4,17 +4,34 @@
 
 *Rev 2.1: debug/telemetry output made **binding for the MVP plugin run** (§1.1 item 9, §4.2, §4.7, Gate C) and for the **full-plugin roadmap** (§10 standing rule + §10.1). Debug output is a deliverable of both, never a CLI-only feature.*
 
+*Rev 3.0 (2026-11-21): **Solv3R pivot.** The inference stack is now Solv3R (PyTorch). The former C1/C2 no-PyTorch / AMD-only / no-CUDA constraints, the A1–A5 model-exclusion audit, the GPS/telemetry metric-scale requirement, and code rule R12 are **removed**. See "Rev 3.0 — Solv3R pivot" below. Everything about non-blocking Blender, debug artifacts, honest errors and code quality still applies.*
+
 **Hard constraints given by the team (non-negotiable):**
 
 | # | Constraint | Consequence for design |
 |---|---|---|
-| C1 | Target GPU: **AMD RX 5700 XT 8 GB, Vulkan-era driver**. 16 GB DDR4 | No CUDA. No PyTorch at runtime. Inference = ONNX on AMD via DirectML (D3D12) or NCNN (Vulkan). See §3 |
-| C2 | **No CPU-bound architecture** — GPU does the heavy work | Every neural network runs on the GPU. CPU only does light geometry at keyframe rate. Budget proof in §3.5 |
-| C3 | Target output: **accurate building positions and structure**; buildings, trees, humans, complex objects replaced by **simplified models with correct sizes** — not photorealistic | 2.5D height-map + extruded/prism meshes + proxy models. No dense photogrammetry, no Gaussian splats, no heavy meshing |
-| C4 | MVP this week: plugin takes **video file or stream**, processes **without blocking Blender**, creates 3D objects in the scene. Textures = declared placeholder (extension point), real projection in full app | See §1 and §10 |
-| C5 | First deliverable: **CLI-only test script** (video → depth maps → point clouds) proving the procedure, with **debug artifacts at every stage** | See §5 and §6 |
+| C1 | ~~Target GPU: AMD RX 5700 XT 8 GB, Vulkan-era driver. 16 GB DDR4~~ **SUPERSEDED by Rev 3.0** | The worker may use PyTorch with CUDA or ROCm when available. The GPU is preferred but is no longer a locked vendor/API. |
+| C2 | ~~No CPU-bound architecture~~ **SUPERSEDED by Rev 3.0** | GPU is preferred; a configured CPU backend is valid and must report its device and measured latency. No silent fallback. |
+| C3 | Target output: **accurate building positions and structure**; buildings, trees, humans, complex objects replaced by **simplified models with correct sizes** — not photorealistic | Dense points + meshes + structure. No heavy photoreal texturing |
+| C4 | The plugin takes a **video file or live stream**, processes **without blocking Blender**, and builds/updates 3D objects in the scene | See §1 and §10 |
+| C5 | First deliverable: **a CLI script** (video/stream → depth maps → point clouds) proving the procedure, with **debug artifacts at every stage** | See §5 and §6 |
 | C6 | Strict code-smell and modularity rules; everything human-readable at every stage; undergraduate-comprehensible complexity | See §8 |
-| C7 | No fake fallbacks, no "temporary" code. Unfinished features = numbered TODOs, never imitated | See §8 rules and §10 register |
+| C7 | No fake fallbacks, no "temporary" code. Unfinished features = numbered TODOs, never imitated. Every failure is a verbose error | See §8 rules and §10 register |
+
+### Rev 3.0 — Solv3R pivot (supersedes C1, C2, A1–A5, R12, and the telemetry requirement)
+
+**Decision:** the reconstruction engine is [Solv3R](https://github.com/ubc-vision/solv3r) (Apache-2.0 code; NVIDIA research weights). It is a PyTorch looped transformer that solves multiple views jointly and supports an **offline**, **incremental**, and **streaming** mode from one model. The worker process runs it; Blender never imports torch.
+
+**Removed by this revision:**
+
+- The ban on `import torch` / `from torch` anywhere. PyTorch is now allowed **inside the worker process and its own virtual environment**. Blender-side add-on code still must not import torch, because Blender's Python is not the worker environment.
+- The AMD-only / DirectML / NCNN / no-CUDA lock. The backend is a startup setting (`cuda`, `rocm`, `cpu`), chosen from what the machine actually has. If the requested backend is unavailable, the worker exits with a verbose error; it does not silently switch.
+- The GPS/IMU telemetry requirement and the ground-plane metric-scale fit. Solv3R predicts metric-scale depth and camera poses from images; no telemetry file is required. Telemetry-dependent requirements (FR-2, FR-5, the scale-fit task T5, and D-000) are superseded and no longer block work.
+- Code rule R12 (ONNX-only technology lock).
+
+**Still binding:** non-blocking Blender, the separate worker process, JSON-line status, debug artifacts in `samples/outputs`, verbose errors instead of fallbacks, deterministic behaviour where the model allows it, and the §8 code-quality rules other than R12.
+
+**Model weights:** downloaded once into the working folder at `models/solv3r.safetensors` (never the Hugging Face cache). The worker loads that exact file and records its SHA256 in the run metadata.
 
 **How to use this document.** §1–3 are decisions and the evidence behind them — read once. §4–7 are the design — the source of truth for what to build. §8 are the rules every human and AI coder must follow. §9 is the week plan; each task card is a copy-paste prompt for an AI coder. §10–11 are the future. Diagrams are all Mermaid, one concern each, small on purpose (maintenance rule in §4.0).
 
@@ -107,11 +124,15 @@ Everything in §1.1 plus: per-object classification (building / tree / vehicle /
 
 ## 3. Feasibility study — the hardware truth (read before coding anything)
 
+> **Rev 3.0 note:** this section is the historical ONNX/DirectML feasibility study. The
+> Solv3R pivot (top of this document) supersedes the model and backend decisions here. The
+> hardware findings about gfx1010 and ROCm 7.2 still apply and are recorded in D-012.
+
 ### 3.1 What the RX 5700 XT can actually run
 
 | Stack option | Verdict | Evidence / reason |
 |---|---|---|
-| PyTorch + CUDA | **Banned** (C1). Target GPU is AMD | — |
+| PyTorch (CUDA / ROCm) and ONNX Runtime | **Allowed** (Rev 3.0). The worker may use whichever the installed backend provides; the choice is a startup setting, not a silent fallback | Solv3R ships as PyTorch; see the Rev 3.0 section |
 | PyTorch + ROCm on RX 5700 XT | **Excluded.** gfx1010/RDNA1 not officially supported by ROCm; community hacks only, no stability guarantee | ROCm support tracker; community confirmations |
 | Multi-view 3D foundation models (VGGT-1B, Pi3, MapAnything, DA3 multi-view) | **Excluded.** PyTorch/CUDA-only releases; VGGT-1B measured by users at > 24 GB on an 8 GB card; DA3 multi-view trained on 128 H100s | [vggt issue #270](https://github.com/facebookresearch/vggt/issues/270); [DA3 repo](https://github.com/bytedance-seed/depth-anything-3) |
 | **ONNX Runtime + DirectML** on the RX 5700 XT | **Primary stack.** AMD's own published recommendation for inference on Radeon; DirectML supports GCN1st-gen and newer — RDNA1 included. Standard ONNX transformer ops run. Windows | [AMD gpuopen DirectML guide](https://gpuopen.com/learn/onnx-directlml-execution-provider-guide-part1); [Ultralytics ONNX/DirectML docs](https://docs.ultralytics.com/integrations/onnx) |
@@ -402,6 +423,10 @@ One registry module (`core/settings.py`): every entry = key, label, type, defaul
 
 ## 5. Debug and telemetry design (the research-project requirement)
 
+> **Rev 3.0 note:** telemetry is no longer required. Solv3R predicts metric depth and camera
+> poses from images. The debug artifact tree below is retained and implemented under
+> `samples/outputs` by `worker/`; telemetry-specific columns are superseded.
+
 > Rule: **every stage that transforms data must emit (a) a machine-readable row, (b) a human-viewable artifact.** If you cannot look at a folder and see what the pipeline thought at step k, the stage is not done.
 
 ### 5.1 Run folder layout (written by `core/debugio.py`, the only module that touches paths)
@@ -475,6 +500,10 @@ Artifacts are written on the worker thread between keyframes (idle time); PNG en
 
 ## 6. The CLI test harness — build this first (C5)
 
+> **Rev 3.0 note:** the CLI is implemented as `v3r_cli.py` using Solv3R. The ONNX/telemetry
+> procedure described below is the historical plan; the current interface and flags are in
+> `README.md`.
+
 ### 6.1 Purpose and procedure choice
 
 `v3r_cli.py` is the pipeline with no Blender: file in, artifacts out. Its job is to prove the §4.4 procedure on real footage before a single line of UI code depends on it. The core modules (`ingest`, `infer`, `geometry`, `scene`) are written once and used by both the CLI and the worker — the plugin is the CLI plus a different publisher.
@@ -528,6 +557,10 @@ python v3r_cli.py --video FILE [--telemetry FILE] [--out DIR]
 ---
 
 ## 7. Evaluation — tables and graphs that make the comparison honest
+
+> **Rev 3.0 note:** the Solv3R run already writes `report.md` with frame counts, point counts
+> and per-stage latency. The ODM/GPS comparison tables below remain the target for the full
+> evaluation; they are not yet implemented.
 
 **Baselines (run offline, once, on the same clips):**
 
@@ -592,10 +625,11 @@ HONESTY (the anti-sugarcoating rules)
  R11. Extension points (e.g., TextureProjector) are interfaces that raise
       NotImplementedError(TODO_id) — declared, tested at the interface level, never imitated.
 
-TECHNOLOGY LOCK (constraint C1/C2)
- R12. Inference = ONNX Runtime only. NO import torch / from torch anywhere (CI grep fails
-      the build). NO CUDA-specific calls. GPU stages must run via the compute backend
-      abstraction (directml | ncnn_vulkan | cpu_reference) chosen at startup.
+TECHNOLOGY (Rev 3.0)
+ R12. Inference runs in the worker process only. PyTorch (CUDA/ROCm) and ONNX Runtime are both
+      allowed there. Blender-side add-on code must not import torch or onnxruntime; it talks to
+      the worker through JSON lines and files. The backend (cuda | rocm | cpu) is a startup
+      setting chosen from the machine; an unavailable backend is a verbose error, not a fallback.
  R13. Anything CPU-side that grows past ~250 ms/keyframe must be reported in the task notes —
       it is an architecture violation, not a tuning problem.
 

@@ -25,8 +25,13 @@ Maintain `plans/progress.md` for every task card or meaningful work chunk.
 
 ## Non-negotiables
 
-- No `import torch` / `from torch` anywhere; inference is ONNX Runtime only.
+- Inference runs in the **worker process only**, inside its own Python environment. PyTorch
+  (CUDA/ROCm) and ONNX Runtime are allowed there. Blender-side add-on code must not import
+  `torch` or `onnxruntime`; it talks to the worker through JSON lines and files.
+- The compute backend (`cuda` / `rocm` / `cpu`) is a startup setting. An unavailable backend
+  is a verbose error, never a silent fallback.
 - Core modules never import `bpy`; only `blender/` code touches Blender.
-- Never invent missing input data. If the telemetry sample or video is absent, stop and record
-  the blocker; do not fabricate column names or values.
+- Never invent missing input data. If the video or stream is absent, stop and record the
+  blocker; do not fabricate frames, depth or poses.
 - Run `ruff format`, `ruff check`, `mypy`, and `pytest` before calling a task done.
+- After any change to `V3R/`, rebuild `V3R_addon.zip` so the installable add-on stays current.
